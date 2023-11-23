@@ -7,6 +7,7 @@ class Neuron
 {
 private:
 	std::vector<double> weights;
+	std::vector<double> lastDeltaWeights;
 	bool toBias;
 	double value;
 	double error;
@@ -19,13 +20,22 @@ private:
 			weights[i] = (rand() % 100) / 50.0 - 1;
 		}
 	}
+	void initializeDeltaWeights()
+	{
+		for (size_t i = 0; i < lastDeltaWeights.size(); i++)
+		{
+			lastDeltaWeights[i] = 0;
+		}
+	}
 public:
 	Neuron(int countWeight = 0, double value = 0, bool toBias = false) 
 	{
 		this->value = value;
 		this->weights.resize(countWeight);
+		this->lastDeltaWeights.resize(countWeight);
 		this->toBias = toBias;
 		initializeWeights();
+		initializeDeltaWeights();
 	}
 	void setValue(double value)
 	{
@@ -58,6 +68,14 @@ public:
 	std::vector<double> getWeights()
 	{
 		return this->weights;
+	}
+	void setLastDeltaWeights(int index, double value)
+	{
+		this->lastDeltaWeights[index] = value;
+	}
+	std::vector<double> getsetLastDeltaWeights()
+	{
+		return this->lastDeltaWeights;
 	}
 	bool getBias()
 	{
@@ -133,7 +151,6 @@ public:
 	}
 	double getResult()
 	{
-		//std::cout << hideNeurons[0][0].getValue() << inputNeurons[0].getValue();
 		return outputNeurons[0].getValue();
 	}
 	void forwardPropagation(std::vector<double> inputs)
@@ -231,14 +248,18 @@ public:
 				{
 					for (int k = 0; k < outputNeurons.size(); k++)
 					{
-						hideNeurons[i][j].setWeights(k, hideNeurons[i][j].getWeights()[k] + learningRate * outputNeurons[k].getGradient() * hideNeurons[i][j].getValue());
+						double deltaW = learningRate * outputNeurons[k].getGradient() * hideNeurons[i][j].getValue() + momentNes * hideNeurons[i][j].getsetLastDeltaWeights()[k];
+						hideNeurons[i][j].setWeights(k, hideNeurons[i][j].getWeights()[k] + deltaW);
+						hideNeurons[i][j].setLastDeltaWeights(k, deltaW);
 					}
 				}
 				else
 				{
 					for (int k = 0; k < hideNeurons[i + 1].size(); k++)
 					{
-						hideNeurons[i][j].setWeights(k, hideNeurons[i][j].getWeights()[k] + learningRate * hideNeurons[i + 1][k].getGradient() * hideNeurons[i][j].getValue());
+						double deltaW = learningRate * hideNeurons[i + 1][k].getGradient() * hideNeurons[i][j].getValue() + momentNes * hideNeurons[i][j].getsetLastDeltaWeights()[k];
+						hideNeurons[i][j].setWeights(k, hideNeurons[i][j].getWeights()[k] + deltaW);
+						hideNeurons[i][j].setLastDeltaWeights(k, deltaW);
 					}
 				}
 			}
@@ -247,7 +268,9 @@ public:
 		{
 			for (int j = 0; j < hideNeurons[0].size(); j++)
 			{
-				inputNeurons[i].setWeights(j, inputNeurons[i].getWeights()[j] + learningRate * hideNeurons[0][j].getGradient() * inputNeurons[i].getValue());
+				double deltaW = learningRate * hideNeurons[0][j].getGradient() * inputNeurons[i].getValue() + inputNeurons[i].getsetLastDeltaWeights()[j] * momentNes;
+				inputNeurons[i].setWeights(j, inputNeurons[i].getWeights()[j] + deltaW);
+				inputNeurons[i].setLastDeltaWeights(j, deltaW);
 			}
 		}
 	}
@@ -255,9 +278,9 @@ public:
 int main()
 {
 	std::vector<std::vector<double>> inputSet = { {0, 0}, {0, 1}, {1, 0}, {1, 1} };
-	std::vector<double> outputSet = { 1, 0, 0, 0 };
-	NeuralNetwork nn(2, { 2 }, 1, 5, 0.5, true);
-	int iteration = 10000;
+	std::vector<double> outputSet = { 0, 0, 0, 1};
+	NeuralNetwork nn(2, { 2 }, 1, 1, 0.8, true);
+	int iteration = 200;
 	for (int i = 0; i < iteration; i++)
 	{
 		for (int j = 0; j < inputSet.size(); j++) 

@@ -22,6 +22,7 @@ private:
 		for (size_t i = 0; i < weights.size(); i++) 
 		{
 			weights[i] = (rand() % 100) / 50.0 - 1;
+			//weights[i] = 0.5;
 		}
 	}
 	void initializeDeltaWeights()
@@ -77,7 +78,7 @@ public:
 	{
 		this->lastDeltaWeights[index] = value;
 	}
-	std::vector<double> getsetLastDeltaWeights()
+	std::vector<double> getLastDeltaWeights()
 	{
 		return this->lastDeltaWeights;
 	}
@@ -92,9 +93,7 @@ private:
 	bool useBias;
 	double momentNes;
 	double learningRate;
-	std::vector<Neuron> inputNeurons;
-	std::vector<std::vector<Neuron>> hideNeurons;
-	std::vector<Neuron> outputNeurons;
+	std::vector<std::vector<Neuron>> allLayers;
 	std::vector<int> coordinatesX;
 	std::vector<double> coordinatesY;
 
@@ -112,179 +111,121 @@ public:
 		this->learningRate = learningRate;
 		this->momentNes = momentNes;
 		this->useBias = useBias;
-		this->hideNeurons.resize(countHideNeuron.size());
-		for (int i = 0; i < countInputNeuron; i++) 
+		this->allLayers.resize(countHideNeuron.size() + 2);
+		//this->allLayers.resize(2);
+		for (int i = 0; i < countoutputNeuron; i++)
 		{
-			if (countHideNeuron.size() == 0) 
-			{
-				inputNeurons.push_back(Neuron(countoutputNeuron));
-			}
-			else 
-			{
-				inputNeurons.push_back(Neuron(countHideNeuron[0] + useBias));
-			}
+			allLayers[allLayers.size() - 1].push_back(Neuron());
 		}
-		if (useBias) inputNeurons.push_back(Neuron(countHideNeuron[0] + useBias, 1, true));
-		for (int i = 0; i < countHideNeuron.size(); i++)
+		
+		for (int i = countHideNeuron.size(); i > 0; i--)
 		{
-			for (int j = 0; j < countHideNeuron[i]; j++)
+			if (countHideNeuron[i - 1] == 0) continue;
+			//allLayers.push_back(std::vector<Neuron>());
+			for (int j = 0; j < countHideNeuron[i - 1]; j++)
 			{
-				if (i == countHideNeuron.size() - 1) 
+				if (i == countHideNeuron.size()) 
 				{
-					hideNeurons[i].push_back(Neuron(countoutputNeuron));
+					allLayers[i].push_back(Neuron(allLayers[allLayers.size() - 1].size()));
 				}
 				else 
 				{
-					hideNeurons[i].push_back(Neuron(countHideNeuron[i + 1] + useBias));
+					allLayers[i].push_back(Neuron(allLayers[i + 1].size() + useBias));
 				}
 			}
 			if (useBias) 
 			{
-				if (i == countHideNeuron.size() - 1)
+				if (i == countHideNeuron.size())
 				{
-					hideNeurons[i].push_back(Neuron(countoutputNeuron, 1, true));
+					allLayers[i].push_back(Neuron(allLayers[allLayers.size() - 1].size(), 1, true));
 				}
 				else
 				{
-					hideNeurons[i].push_back(Neuron(countHideNeuron[i + 1] + useBias, 1, true));
+					allLayers[i].push_back(Neuron(allLayers[i + 1].size() + useBias, 1, true));
 				}
+
 			}
 		}
-		for (int i = 0; i < countoutputNeuron; i++)
+		for (int i = 0; i < countInputNeuron; i++)
 		{
-			outputNeurons.push_back(Neuron());
+			allLayers[0].push_back(Neuron(allLayers[1].size()));
 		}
+		if (useBias) allLayers[0].push_back(Neuron(allLayers[1].size(), 1, true));
 	}
 	double getResult()
 	{
-		return outputNeurons[0].getValue();
+		return allLayers[allLayers.size() - 1][0].getValue();
 	}
 	double getErrorSquare()
 	{
-		return pow(outputNeurons[0].getError(), 2);
+		return pow(getError(), 2);
 	}
 	double getError()
 	{
-		return outputNeurons[0].getError();
+		return allLayers[allLayers.size() - 1][0].getError();
 	}
 	void forwardPropagation(std::vector<double> inputs)
 	{
-		for (int i = 0; i < inputNeurons.size() - 1; i++) 
+		for (int i = 0; i < allLayers[0].size() - 1; i++)
 		{
-			inputNeurons[i].setValue(inputs[i]);
+			allLayers[0][i].setValue(inputs[i]);
 		}
-		for (int i = 0; i < hideNeurons.size(); i++)
+		for (int i = 1; i < allLayers.size(); i++)
 		{
-			for (int j = 0; j < hideNeurons[i].size(); j++) 
+			for (int j = 0; j < allLayers[i].size(); j++)
 			{
+				if (allLayers[i][j].getBias())
+				{
+					allLayers[i][j].setValue(1);
+					continue;
+				}
 				double sum = 0.0;
-				if (i == 0) 
+				for (int k = 0; k < allLayers[i - 1].size(); k++) 
 				{
-					for (int k = 0; k < inputNeurons.size(); k++)
-					{
-						sum += inputNeurons[k].getValue() * inputNeurons[k].getWeights()[j];
-					}
+					sum += allLayers[i - 1][k].getValue() * allLayers[i - 1][k].getWeights()[j];
 				}
-				else 
-				{
-					for (int k = 0; k < hideNeurons[i - 1].size(); k++)
-					{
-						sum += hideNeurons[i - 1][k].getValue() * hideNeurons[i - 1][k].getWeights()[j];
-					}
-				}
-				if (hideNeurons[i][j].getBias())
-				{
-					hideNeurons[i][j].setValue(1);
-				}
-				else 
-				{
-					hideNeurons[i][j].setValue(activate(sum));
-				}
-				
+				allLayers[i][j].setValue(activate(sum));
 			}
-		}
-		for (int i = 0; i < outputNeurons.size(); i++)
-		{
-			double sum = 0.0;
-			for (int j = 0; j < hideNeurons[hideNeurons.size() - 1].size(); j++)
-			{
-				sum += hideNeurons[hideNeurons.size() - 1][j].getValue() * hideNeurons[hideNeurons.size() - 1][j].getWeights()[i];
-			};
-			outputNeurons[i].setValue(activate(sum));
 		}
 	}
 	void backPropagation(std::vector<double> inputs, int value)
 	{
 		forwardPropagation(inputs);
-		for (int i = 0; i < outputNeurons.size(); i++)
+		for (int i = 0; i < allLayers[allLayers.size() - 1].size(); i++)
 		{
-			outputNeurons[i].setError(value - outputNeurons[i].getValue());
+			allLayers[allLayers.size() - 1][i].setError(value - allLayers[allLayers.size() - 1][i].getValue());
+			allLayers[allLayers.size() - 1][i].setGradient(allLayers[allLayers.size() - 1][i].getError() * derivative(allLayers[allLayers.size() - 1][i].getValue()));
 		}
-		for (int i = 0; i < outputNeurons.size(); i++)
+		for (int i = allLayers.size() - 2; i > 0; i--)
 		{
-			outputNeurons[i].setGradient(outputNeurons[i].getError() * derivative(outputNeurons[i].getValue()));
-		}
-		for (int i = hideNeurons.size() - 1; i > -1; i--)
-		{
-			for (int j = 0; j < hideNeurons[i].size(); j++)
+			for (int j = 0; j < allLayers[i].size(); j++)
 			{
+				
 				double sum = 0.0;
-				if (i == hideNeurons.size() - 1)
+				for (int k = 0; k < allLayers[i + 1].size(); k++)
 				{
-					for (int k = 0; k < outputNeurons.size(); k++)
-					{
-						sum += outputNeurons[k].getError() * hideNeurons[i][j].getWeights()[k];
-					}
+					sum += allLayers[i + 1][k].getGradient() * allLayers[i][j].getWeights()[k];
 				}
-				else
-				{
-					for (int k = 0; k < hideNeurons[i + 1].size(); k++)
-					{
-						sum += hideNeurons[i + 1][k].getError() * hideNeurons[i][j].getWeights()[k];
-					}
-				}
-				hideNeurons[i][j].setError(sum);
+				allLayers[i][j].setError(sum);
 			}
 		}
-
-		for (int i = hideNeurons.size() - 1; i > -1; i--)
+		for (int i = allLayers.size() - 2; i > 0; i--)
 		{
-			for (int j = 0; j < hideNeurons[i].size(); j++)
+			for (int j = 0; j < allLayers[i].size(); j++)
 			{
-				hideNeurons[i][j].setGradient(hideNeurons[i][j].getError() * derivative(hideNeurons[i][j].getValue()));
+				allLayers[i][j].setGradient(allLayers[i][j].getError() * derivative(allLayers[i][j].getValue()));
 			}
 		}
-		for (int i = hideNeurons.size() - 1; i > -1 ; i--)
+		for (int i = allLayers.size() - 2; i > -1 ; i--)
 		{
-			for (int j = 0; j < hideNeurons[i].size(); j++)
+			for (int j = 0; j < allLayers[i].size(); j++)
 			{
-				if (i == hideNeurons.size() - 1)
+				for (int k = 0; k < allLayers[i + 1].size(); k++)
 				{
-					for (int k = 0; k < outputNeurons.size(); k++)
-					{
-						double deltaW = learningRate * outputNeurons[k].getGradient() * hideNeurons[i][j].getValue() + momentNes * hideNeurons[i][j].getsetLastDeltaWeights()[k];
-						hideNeurons[i][j].setWeights(k, hideNeurons[i][j].getWeights()[k] + deltaW);
-						hideNeurons[i][j].setLastDeltaWeights(k, deltaW);
-					}
+					double deltaW = learningRate * allLayers[i + 1][k].getGradient() * allLayers[i][j].getValue() + momentNes * allLayers[i][j].getLastDeltaWeights()[k];
+					allLayers[i][j].setWeights(k, allLayers[i][j].getWeights()[k] + deltaW);
+					allLayers[i][j].setLastDeltaWeights(k, deltaW);
 				}
-				else
-				{
-					for (int k = 0; k < hideNeurons[i + 1].size(); k++)
-					{
-						double deltaW = learningRate * hideNeurons[i + 1][k].getGradient() * hideNeurons[i][j].getValue() + momentNes * hideNeurons[i][j].getsetLastDeltaWeights()[k];
-						hideNeurons[i][j].setWeights(k, hideNeurons[i][j].getWeights()[k] + deltaW);
-						hideNeurons[i][j].setLastDeltaWeights(k, deltaW);
-					}
-				}
-			}
-		}
-		for (int i = 0; i < inputNeurons.size(); i++)
-		{
-			for (int j = 0; j < hideNeurons[0].size(); j++)
-			{
-				double deltaW = learningRate * hideNeurons[0][j].getGradient() * inputNeurons[i].getValue() + inputNeurons[i].getsetLastDeltaWeights()[j] * momentNes;
-				inputNeurons[i].setWeights(j, inputNeurons[i].getWeights()[j] + deltaW);
-				inputNeurons[i].setLastDeltaWeights(j, deltaW);
 			}
 		}
 	}
@@ -302,7 +243,7 @@ public:
 			coordinatesX.push_back(i);
 			coordinatesY.push_back((1.0f / inputSet.size()) * sum);
 		}
-		matplot::plot(coordinatesX, coordinatesY);
+		//matplot::plot(coordinatesX, coordinatesY);
 	}
 	void trainBeforeTheError(std::vector<std::vector<double>> inputSet, std::vector<double> outputSet, double errorMax, int maxIteration)
 	{
@@ -318,15 +259,15 @@ public:
 				sum += getErrorSquare();
 			}
 			coordinatesX.push_back(i);
-			coordinatesY.push_back((1.0f / outputNeurons.size()) * sum);
-			error = (1.0f / outputNeurons.size()) * sum;
+			coordinatesY.push_back((1.0f / inputSet.size()) * sum);
+			error = (1.0f / inputSet.size()) * sum;
 			if (i > maxIteration)
 			{
 				break;
 			}
 			i++;
 		}
-		matplot::plot(coordinatesX, coordinatesY);
+		//matplot::plot(coordinatesX, coordinatesY);
 	}
 	void printResultTrain(std::vector<std::vector<double>> inputSet)
 	{
@@ -344,15 +285,16 @@ public:
 int main()
 {
 	std::vector<std::vector<double>> inputSet = { {0, 0}, {0, 1}, {1, 0}, {1, 1} };
-	std::vector<double> outputSet = { 0, 0, 1, 1 };
-	NeuralNetwork nn(2, { 2 }, 1, 1, 0.8, true);
-	nn.printResultTrain(inputSet);
+	//std::vector<std::vector<double>> inputSet = { {0}, {1} };
+	std::vector<double> outputSet = { 0, 1, 1, 0 };
+	NeuralNetwork nn(2, { 2, 2 }, 1, 1, 0.8, true);
+	//nn.printResultTrain(inputSet);
 	clock_t start = clock();
-	nn.trainBeforeTheError(inputSet, outputSet, 0.01, 10000);
-	//nn.trainToIterarion(inputSet, outputSet, 500);
+	//nn.trainBeforeTheError(inputSet, outputSet, 0.05, 10000);
+	nn.trainToIterarion(inputSet, outputSet, 1000);
 	clock_t end = clock();
 	std::cout << (end - start) / (CLOCKS_PER_SEC / 1000.0f) << "\n";
 	nn.printResultTrain(inputSet);
-	matplot::show();
+	//matplot::show();
 	return 0;
 }

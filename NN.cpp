@@ -2,6 +2,9 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <stdlib.h>
+#include <time.h>
+#include "matplot/matplot.h"
 
 class Neuron 
 {
@@ -15,6 +18,7 @@ private:
 
 	void initializeWeights() 
 	{
+		srand(time(NULL));
 		for (size_t i = 0; i < weights.size(); i++) 
 		{
 			weights[i] = (rand() % 100) / 50.0 - 1;
@@ -153,6 +157,10 @@ public:
 	{
 		return outputNeurons[0].getValue();
 	}
+	double getError()
+	{
+		return pow(outputNeurons[0].getError(), 2);
+	}
 	void forwardPropagation(std::vector<double> inputs)
 	{
 		for (int i = 0; i < inputNeurons.size() - 1; i++) 
@@ -278,19 +286,38 @@ public:
 int main()
 {
 	std::vector<std::vector<double>> inputSet = { {0, 0}, {0, 1}, {1, 0}, {1, 1} };
-	std::vector<double> outputSet = { 0, 0, 0, 1};
-	NeuralNetwork nn(2, { 2 }, 1, 1, 0.8, true);
-	int iteration = 200;
+	std::vector<double> outputSet = { 0, 1, 1, 0 };
+	NeuralNetwork nn(2, { 2 }, 1, 1, 0.9, true);
+	int iteration = 120;
+	//for (int j = 0; j < inputSet.size(); j++)
+	//{
+	//	nn.forwardPropagation(inputSet[j]);
+	//	std::cout << j + 1 << " " << nn.getResult() << "\n";
+	//}
+	std::vector<int> coordinatesX;
+	std::vector<double> coordinatesY;
+	clock_t start = clock();
 	for (int i = 0; i < iteration; i++)
 	{
+		double sum = 0;
+		std::vector<double> errors;
 		for (int j = 0; j < inputSet.size(); j++) 
 		{
 			nn.backPropagation(inputSet[j], outputSet[j]);
-			if (i == iteration - 1)
-			{
-				std::cout << j + 1 << " " << nn.getResult() << "\n";
-			}
+			sum += nn.getError();
 		}
+		coordinatesX.push_back(i);
+		coordinatesY.push_back((1.0f / inputSet.size()) * sum);
 	}
+	clock_t end = clock();
+	std::cout << (end - start) / (CLOCKS_PER_SEC / 1000.0f) << "\n";
+	for (int j = 0; j < inputSet.size(); j++)
+	{
+		nn.forwardPropagation(inputSet[j]);
+		std::cout << j + 1 << " " << nn.getResult() << "\n";
+	}
+	matplot::plot(coordinatesX, coordinatesY);
+
+	matplot::show();
 	return 0;
 }

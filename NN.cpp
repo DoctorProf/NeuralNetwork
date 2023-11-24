@@ -95,6 +95,8 @@ private:
 	std::vector<Neuron> inputNeurons;
 	std::vector<std::vector<Neuron>> hideNeurons;
 	std::vector<Neuron> outputNeurons;
+	std::vector<int> coordinatesX;
+	std::vector<double> coordinatesY;
 
 	double activate(double x)
 	{
@@ -119,10 +121,10 @@ public:
 			}
 			else 
 			{
-				inputNeurons.push_back(Neuron(countHideNeuron[0] + 1));
+				inputNeurons.push_back(Neuron(countHideNeuron[0] + useBias));
 			}
 		}
-		if (useBias) inputNeurons.push_back(Neuron(countHideNeuron[0] + 1, 1, true));
+		if (useBias) inputNeurons.push_back(Neuron(countHideNeuron[0] + useBias, 1, true));
 		for (int i = 0; i < countHideNeuron.size(); i++)
 		{
 			for (int j = 0; j < countHideNeuron[i]; j++)
@@ -133,7 +135,7 @@ public:
 				}
 				else 
 				{
-					hideNeurons[i].push_back(Neuron(countHideNeuron[i + 1] + 1));
+					hideNeurons[i].push_back(Neuron(countHideNeuron[i + 1] + useBias));
 				}
 			}
 			if (useBias) 
@@ -144,7 +146,7 @@ public:
 				}
 				else
 				{
-					hideNeurons[i].push_back(Neuron(countHideNeuron[i + 1] + 1, 1, true));
+					hideNeurons[i].push_back(Neuron(countHideNeuron[i + 1] + useBias, 1, true));
 				}
 			}
 		}
@@ -157,9 +159,13 @@ public:
 	{
 		return outputNeurons[0].getValue();
 	}
-	double getError()
+	double getErrorSquare()
 	{
 		return pow(outputNeurons[0].getError(), 2);
+	}
+	double getError()
+	{
+		return outputNeurons[0].getError();
 	}
 	void forwardPropagation(std::vector<double> inputs)
 	{
@@ -282,42 +288,71 @@ public:
 			}
 		}
 	}
+	void trainToIterarion(std::vector<std::vector<double>> inputSet, std::vector<double> outputSet, int iteration)
+	{
+		for (int i = 0; i < iteration; i++)
+		{
+			double sum = 0;
+			std::vector<double> errors;
+			for (int j = 0; j < inputSet.size(); j++)
+			{
+				backPropagation(inputSet[j], outputSet[j]);
+				sum += getErrorSquare();
+			}
+			coordinatesX.push_back(i);
+			coordinatesY.push_back((1.0f / inputSet.size()) * sum);
+		}
+		matplot::plot(coordinatesX, coordinatesY);
+	}
+	void trainBeforeTheError(std::vector<std::vector<double>> inputSet, std::vector<double> outputSet, double errorMax, int maxIteration)
+	{
+		double error = (double)INFINITE;
+		int i = 0;
+		while (error > errorMax)
+		{
+			double sum = 0;
+			std::vector<double> errors;
+			for (int j = 0; j < inputSet.size(); j++)
+			{
+				backPropagation(inputSet[j], outputSet[j]);
+				sum += getErrorSquare();
+			}
+			coordinatesX.push_back(i);
+			coordinatesY.push_back((1.0f / outputNeurons.size()) * sum);
+			error = (1.0f / outputNeurons.size()) * sum;
+			if (i > maxIteration)
+			{
+				break;
+			}
+			i++;
+		}
+		matplot::plot(coordinatesX, coordinatesY);
+	}
+	void printResultTrain(std::vector<std::vector<double>> inputSet)
+	{
+		for (int i = 0; i < inputSet.size(); i++)
+		{
+			forwardPropagation(inputSet[i]);
+			std::cout << i + 1 << " " << getResult() << "\n";
+		}
+	}
+	void saveWeights()
+	{
+
+	}
 };
 int main()
 {
 	std::vector<std::vector<double>> inputSet = { {0, 0}, {0, 1}, {1, 0}, {1, 1} };
-	std::vector<double> outputSet = { 0, 1, 1, 0 };
-	NeuralNetwork nn(2, { 2 }, 1, 1, 0.9, true);
-	int iteration = 120;
-	//for (int j = 0; j < inputSet.size(); j++)
-	//{
-	//	nn.forwardPropagation(inputSet[j]);
-	//	std::cout << j + 1 << " " << nn.getResult() << "\n";
-	//}
-	std::vector<int> coordinatesX;
-	std::vector<double> coordinatesY;
+	std::vector<double> outputSet = { 0, 0, 1, 1 };
+	NeuralNetwork nn(2, { 2 }, 1, 1, 0.8, true);
+	nn.printResultTrain(inputSet);
 	clock_t start = clock();
-	for (int i = 0; i < iteration; i++)
-	{
-		double sum = 0;
-		std::vector<double> errors;
-		for (int j = 0; j < inputSet.size(); j++) 
-		{
-			nn.backPropagation(inputSet[j], outputSet[j]);
-			sum += nn.getError();
-		}
-		coordinatesX.push_back(i);
-		coordinatesY.push_back((1.0f / inputSet.size()) * sum);
-	}
+	nn.trainBeforeTheError(inputSet, outputSet, 0.01, 10000);
+	//nn.trainToIterarion(inputSet, outputSet, 500);
 	clock_t end = clock();
 	std::cout << (end - start) / (CLOCKS_PER_SEC / 1000.0f) << "\n";
-	for (int j = 0; j < inputSet.size(); j++)
-	{
-		nn.forwardPropagation(inputSet[j]);
-		std::cout << j + 1 << " " << nn.getResult() << "\n";
-	}
-	matplot::plot(coordinatesX, coordinatesY);
-
+	nn.printResultTrain(inputSet);
 	matplot::show();
 	return 0;
 }

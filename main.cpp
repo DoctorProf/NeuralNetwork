@@ -10,18 +10,17 @@ int main()
 
 	std::vector<double> outputSet = { 0, 1, 1, 1 };
 
-	NeuralNetwork nn(2, { 2 }, 1, 2, 0.80, true);
+	NeuralNetwork nn(2, { 2 }, 1, 1, 0.8, true);
 
 	clock_t start = clock();
 
-	nn.trainToIterarion(inputSet, outputSet, 1000);
-
+	//nn.trainToIterarion(inputSet, outputSet, 10000);
+	//nn.trainBeforeTheError(inputSet, outputSet, 0.01, 1000000);
 	clock_t end = clock();
 
 	std::cout << (end - start) / (CLOCKS_PER_SEC / 1000.0f) << "\n";
-
 	nn.printResultTrain(inputSet);
-
-	//matplot::show();
+	nn.saveWeights();
+	matplot::show();
 	return 0;
 }

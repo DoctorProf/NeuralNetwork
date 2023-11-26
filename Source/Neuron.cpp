@@ -6,6 +6,7 @@ void Neuron::initializeWeights()
 	for (size_t i = 0; i < weights.size(); i++)
 	{
 		weights[i] = (rand() % 100) / 50.0 - 1;
+		//weights[i] = 1;
 	}
 }
 void Neuron::initializeDeltaWeights()

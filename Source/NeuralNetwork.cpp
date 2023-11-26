@@ -99,20 +99,11 @@ void NeuralNetwork::backPropagation(std::vector<double> inputs, double value)
 			{
 				sum += layers[i + 1][k].getGradient() * layers[i][j].getWeights()[k];
 			}
-			layers[i][j].setError(sum);
-			layers.end();
-		}
-	}
-	// Градиент скрытых слоев
-	for (int i = 1; i < layers.size() - 1; i++)
-	{
-		for (int j = 0; j < layers[i].size(); j++)
-		{
-			layers[i][j].setGradient(layers[i][j].getError() * derivative(layers[i][j].getValue()));
+			layers[i][j].setGradient(sum * derivative(layers[i][j].getValue()));
 		}
 	}
 	// Корректирование весов для всех слоев
-	for (int i = layers.size() - 2; i > -1; i--)
+	for (int i = 0; i < layers.size() - 1; i++)
 	{
 		for (int j = 0; j < layers[i].size(); j++)
 		{
@@ -125,7 +116,7 @@ void NeuralNetwork::backPropagation(std::vector<double> inputs, double value)
 		}
 	}
 }
-void NeuralNetwork::trainToIterarion(std::vector<std::vector<double>> inputSet, std::vector<double> outputSet, int iteration)
+void NeuralNetwork::trainToIterarion(std::vector<std::vector<double>>& inputSet, std::vector<double>& outputSet, int iteration)
 {
 	for (int i = 0; i < iteration; i++)
 	{
@@ -139,9 +130,9 @@ void NeuralNetwork::trainToIterarion(std::vector<std::vector<double>> inputSet, 
 		coordinatesX.push_back(i);
 		coordinatesY.push_back(sum / inputSet.size());
 	}
-	//matplot::plot(coordinatesX, coordinatesY);
+	matplot::plot(coordinatesX, coordinatesY);
 }
-void NeuralNetwork::trainBeforeTheError(std::vector<std::vector<double>> inputSet, std::vector<double> outputSet, double errorMax, int maxIteration)
+void NeuralNetwork::trainBeforeTheError(std::vector<std::vector<double>>& inputSet, std::vector<double>& outputSet, double errorMax, int maxIteration)
 {
 	double error = (double)INFINITE;
 	int i = 0;
@@ -159,13 +150,15 @@ void NeuralNetwork::trainBeforeTheError(std::vector<std::vector<double>> inputSe
 		error = sum / inputSet.size();
 		if (i > maxIteration)
 		{
+			std::cout << "Over iteration\n";
 			break;
 		}
 		i++;
 	}
-	//matplot::plot(coordinatesX, coordinatesY);
+	std::cout << "Iteration " << i << "\n";
+	matplot::plot(coordinatesX, coordinatesY);
 }
-void NeuralNetwork::printResultTrain(std::vector<std::vector<double>> inputSet)
+void NeuralNetwork::printResultTrain(std::vector<std::vector<double>>& inputSet)
 {
 	for (int i = 0; i < inputSet.size(); i++)
 	{
@@ -180,5 +173,19 @@ void NeuralNetwork::printResultTrain(std::vector<std::vector<double>> inputSet)
 }
 void NeuralNetwork::saveWeights()
 {
-
+	std::ofstream file("nn.txt");
+	for (int i = 0; i < layers.size(); i++) 
+	{
+		file << i + 1 << " слой\n";
+		for (int j = 0; j < layers[i].size(); j++) 
+		{
+			file << j + 1 << " нейрон\n";
+			for (int k = 0; k < layers[i][j].getWeights().size(); k++)
+			{
+				file << layers[i][j].getWeights()[k] << std::endl;
+			}
+		}
+	}
+	file.close();
+	std::cout << "save";
 }

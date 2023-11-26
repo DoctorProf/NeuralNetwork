@@ -3,6 +3,7 @@
 #include "matplot/matplot.h"
 #include <cmath>
 #include <stdlib.h>
+#include <fstream>
 
 class NeuralNetwork
 {
@@ -23,8 +24,8 @@ public:
 	double getError();
 	void forwardPropagation(std::vector<double> inputs);
 	void backPropagation(std::vector<double> inputs, double value);
-	void trainToIterarion(std::vector<std::vector<double>> inputSet, std::vector<double> outputSet, int iteration);
-	void trainBeforeTheError(std::vector<std::vector<double>> inputSet, std::vector<double> outputSet, double errorMax, int maxIteration);
-	void printResultTrain(std::vector<std::vector<double>> inputSet);
+	void trainToIterarion(std::vector<std::vector<double>>& inputSet, std::vector<double>& outputSet, int iteration);
+	void trainBeforeTheError(std::vector<std::vector<double>>& inputSet, std::vector<double>& outputSet, double errorMax, int maxIteration);
+	void printResultTrain(std::vector<std::vector<double>>& inputSet);
 	void saveWeights();
 };

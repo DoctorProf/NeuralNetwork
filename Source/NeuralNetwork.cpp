@@ -1,5 +1,13 @@
 #include "../Headers/NeuralNetwork.h"
 
+double NeuralNetwork::activate(double x)
+{
+	return 1.0 / (1.0 + exp(-x));
+}
+double NeuralNetwork::derivative(double x)
+{
+	return x * (1 - x);
+}
 NeuralNetwork::NeuralNetwork(int countInputNeuron, std::vector<int> countHideNeuron, int countOutputNeuron, double learningRate, double momentNes, bool useBias)
 {
 	this->learningRate = learningRate;
@@ -131,7 +139,7 @@ void NeuralNetwork::trainToIterarion(std::vector<std::vector<double>> inputSet, 
 		coordinatesX.push_back(i);
 		coordinatesY.push_back(sum / inputSet.size());
 	}
-	matplot::plot(coordinatesX, coordinatesY);
+	//matplot::plot(coordinatesX, coordinatesY);
 }
 void NeuralNetwork::trainBeforeTheError(std::vector<std::vector<double>> inputSet, std::vector<double> outputSet, double errorMax, int maxIteration)
 {

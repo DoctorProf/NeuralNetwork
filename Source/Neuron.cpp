@@ -1,6 +1,21 @@
 #include "../Headers/Neuron.h"
 
-Neuron::Neuron(int countWeight = 0, double value = 0, bool toBias = false)
+void Neuron::initializeWeights()
+{
+	srand(time(NULL));
+	for (size_t i = 0; i < weights.size(); i++)
+	{
+		weights[i] = (rand() % 100) / 50.0 - 1;
+	}
+}
+void Neuron::initializeDeltaWeights()
+{
+	for (size_t i = 0; i < lastDeltaWeights.size(); i++)
+	{
+		lastDeltaWeights[i] = 0;
+	}
+}
+Neuron::Neuron(int countWeight, double value, bool toBias)
 {
 	this->value = value;
 	this->weights.resize(countWeight);

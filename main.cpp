@@ -10,11 +10,11 @@ int main()
 
 	std::vector<double> outputSet = { 0, 1, 1, 1 };
 
-	NeuralNetwork nn(2, { 2, 2 }, 1, 2, 0.90, true);
+	NeuralNetwork nn(2, { 2 }, 1, 2, 0.80, true);
 
 	clock_t start = clock();
 
-	nn.trainToIterarion(inputSet, outputSet, 3000);
+	nn.trainToIterarion(inputSet, outputSet, 1000);
 
 	clock_t end = clock();
 
@@ -22,6 +22,6 @@ int main()
 
 	nn.printResultTrain(inputSet);
 
-	matplot::show();
+	//matplot::show();
 	return 0;
 }

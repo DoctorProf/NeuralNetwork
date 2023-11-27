@@ -3,10 +3,12 @@
 double NeuralNetwork::activate(double x)
 {
 	return 1.0 / (1.0 + exp(-x));
+	return x > 0 ? x : 0.0;
 }
 double NeuralNetwork::derivative(double x)
 {
 	return x * (1 - x);
+	return x < 0 ? 0.0 : 1.0;
 }
 void NeuralNetwork::generateNeurons()
 {
@@ -19,7 +21,12 @@ void NeuralNetwork::generateNeurons()
 	// Генерация скрытых слоев и скрытых нейронов
 	for (int i = this->hideNeurons.size(); i > 0; i--)
 	{
-		if (hideNeurons[i - 1] == 0) continue;
+		if (hideNeurons[i - 1] == 0)
+		{
+			hideNeurons.erase(hideNeurons.begin() + i - 1);
+			layers.erase(layers.begin() + i);
+			continue;
+		}
 		for (int j = 0; j < hideNeurons[i - 1]; j++)
 		{
 			layers[i].push_back(Neuron(layers[i + 1].size()));
@@ -39,7 +46,7 @@ void NeuralNetwork::generateNeurons()
 void NeuralNetwork::forwardPropagation(std::vector<double> inputs)
 {
 	// Установка входных параметров
-	for (int i = 0; i < inputs.size(); i++)
+	for (int i = 0; i < layers[0].size() - this->useBias; i++)
 	{
 		layers[0][i].setValue(inputs[i]);
 	}
@@ -62,13 +69,13 @@ void NeuralNetwork::forwardPropagation(std::vector<double> inputs)
 		}
 	}
 }
-void NeuralNetwork::backPropagation(std::vector<double> inputs, double value)
+void NeuralNetwork::backPropagation(std::vector<double> inputs, std::vector<double> value)
 {
 	forwardPropagation(inputs);
 	// Рассчет ошибки и градиента выходных нейронов
 	for (int i = 0; i < layers[layers.size() - 1].size(); i++)
 	{
-		layers[layers.size() - 1][i].setError(value - layers[layers.size() - 1][i].getValue());
+		layers[layers.size() - 1][i].setError(value[i] - layers[layers.size() - 1][i].getValue());
 		layers[layers.size() - 1][i].setGradient(layers[layers.size() - 1][i].getError() * derivative(layers[layers.size() - 1][i].getValue()));
 	}
 
@@ -108,15 +115,16 @@ void NeuralNetwork::initializeWeights()
 		{
 			for (int k = 0; k < layers[i][j].getWeights().size(); k++) 
 			{
-				layers[i][j].setWeights(k, (rand() % 100) / 50.0 - 1);
+				layers[i][j].setWeights(k, (rand() % 100) / 100.0);
 				layers[i][j].setLastDeltaWeights(k, 0);
 			}
 		}
 	}
 }
-double NeuralNetwork::getErrorSquare()
+double NeuralNetwork::getErrorSquare(int index)
 {
-	return pow(layers[layers.size() - 1][0].getError(), 2);
+	if (outputNeurons == 0) return 0;
+	return pow(layers[layers.size() - 1][index].getError(), 2);
 }
 void NeuralNetwork::saveNN()
 {
@@ -197,7 +205,12 @@ NeuralNetwork::NeuralNetwork(std::string file)
 	}
 	
 }
-void NeuralNetwork::trainToIterarion(std::vector<std::vector<double>> inputSet, std::vector<double> outputSet, int iteration, bool save)
+std::vector<std::vector<Neuron>> NeuralNetwork::getLayers()
+{
+	return layers;
+}
+
+void NeuralNetwork::trainToIterarion(std::vector<std::vector<double>> inputSet, std::vector<std::vector<double>> outputSet, int iteration, bool save)
 {
 	for (int i = 0; i < iteration; i++)
 	{
@@ -206,15 +219,19 @@ void NeuralNetwork::trainToIterarion(std::vector<std::vector<double>> inputSet, 
 		for (int j = 0; j < inputSet.size(); j++)
 		{
 			backPropagation(inputSet[j], outputSet[j]);
-			sum += getErrorSquare();
+			for (int k = 0; k < outputNeurons; k++)
+			{
+				sum += getErrorSquare(k);
+			}
+			
 		}
 		coordinatesX.push_back(i);
-		coordinatesY.push_back(sum / inputSet.size());
+		coordinatesY.push_back(sum / outputNeurons);
 	}
 	if (save) saveNN();
 	//matplot::plot(coordinatesX, coordinatesY);
 }
-void NeuralNetwork::trainBeforeTheError(std::vector<std::vector<double>> inputSet, std::vector<double> outputSet, double errorMax, int maxIteration, bool save)
+void NeuralNetwork::trainBeforeTheError(std::vector<std::vector<double>> inputSet, std::vector<std::vector<double>> outputSet, double errorMax, int maxIteration, bool save)
 {
 	double error = (double)INFINITE;
 	int i = 0;
@@ -225,11 +242,14 @@ void NeuralNetwork::trainBeforeTheError(std::vector<std::vector<double>> inputSe
 		for (int j = 0; j < inputSet.size(); j++)
 		{
 			backPropagation(inputSet[j], outputSet[j]);
-			sum += getErrorSquare();
+			for (int k = 0; k < outputNeurons; k++)
+			{
+				sum += getErrorSquare(k);
+			}
 		}
 		coordinatesX.push_back(i);
-		coordinatesY.push_back(sum / inputSet.size());
-		error = sum / inputSet.size();
+		coordinatesY.push_back(sum / outputNeurons);
+		error = sum / outputNeurons;
 		if (i > maxIteration)
 		{
 			std::cout << "Over iteration\n";
@@ -241,16 +261,39 @@ void NeuralNetwork::trainBeforeTheError(std::vector<std::vector<double>> inputSe
 	if (save) saveNN();
 	//matplot::plot(coordinatesX, coordinatesY);
 }
-void NeuralNetwork::printResultTrain(std::vector<std::vector<double>> inputSet)
+void NeuralNetwork::printResultTrain(std::vector<std::vector<double>> inputSet, std::vector<std::vector<double>> outputSet)
 {
+	int learned = 0;
+	int not_learned = 0;
+	int count = 0;
 	for (int i = 0; i < inputSet.size(); i++)
 	{
 		forwardPropagation(inputSet[i]);
-		std::cout << i + 1 << " " << getResult() << "\n";
-		layers.end();
+		for (int j = 0; j < outputNeurons; j++) 
+		{
+			/*if (std::round(layers[layers.size() - 1][j].getValue()) != std::round(outputSet[i][j])) 
+			{
+				count++;
+				break;
+			}*/
+			std::cout << i + 1 << " " << layers[layers.size() - 1][j].getValue() << "\n";
+		}
+		std::cout << std::endl;
+		/*if (count == 0) {
+			std::cout << i + 1 << " V Learned"<< "\n";
+			learned++;
+		}
+		else {
+			std::cout << i + 1 << " X Not learned" << "\n";
+			not_learned++;
+		}
+		
+		count = 0;*/
 	}
+	/*std::cout << "not LEARN " << not_learned << "\n";
+	std::cout << "LEARN " << learned << "\n";*/
 }
-double NeuralNetwork::getResult()
+void NeuralNetwork::predict(std::vector<double> input)
 {
-	return layers[layers.size() - 1][0].getValue();
+	forwardPropagation(input);
 }

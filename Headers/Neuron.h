@@ -11,9 +11,6 @@ private:
 	double value;
 	double error;
 	double gradient;
-
-	void initializeWeights();
-	void initializeDeltaWeights();
 public:
 	Neuron(int countWeight = 0, double value = 0, bool toBias = false);
 	void setValue(double value);
